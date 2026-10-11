@@ -50,16 +50,16 @@ The database defaults to `jarvis.db` in the project directory. For shared or pro
 
 ## Deploy to Render
 
-The root `render.yaml` Blueprint deploys the Dockerized JARVIS web app on a paid Render Starter instance with a persistent SQLite disk and a Render-generated `APP_API_TOKEN`. The Docker image excludes `.env`, local databases, and the development virtual environment. The container listens on Render's assigned `PORT`; local Docker runs continue to default to port 8000.
+The root `render.yaml` Blueprint deploys the Dockerized JARVIS web app on Render's free web-service tier and generates an `APP_API_TOKEN`. This no-cost setup has ephemeral storage: SQLite data can be lost when the instance restarts, sleeps, or is redeployed, and the free instance may spin down while idle. Do not rely on it as durable storage. The Docker image excludes `.env`, local databases, and the development virtual environment. The container listens on Render's assigned `PORT`; local Docker runs continue to default to port 8000.
 
 1. Push this project to a GitHub or GitLab repository you control. Do not commit `.env`, credentials, or local database files.
-2. In Render, create a **Blueprint** from that repository and apply `render.yaml`. The persistent disk requires a paid service plan.
+2. In Render, create a **Blueprint** from that repository and apply `render.yaml`. The Blueprint uses free compute and does not attach a persistent disk.
 3. Wait for the `/api/health` health check to pass. Open the created JARVIS service URL and enter the generated `APP_API_TOKEN` in **Sources & connections** (retrieve it from the Render service's environment settings).
 4. Add provider secrets using the Render dashboard's environment settings, then redeploy. To enable a provider, set its required credentials and its exact public HTTPS OAuth callback URL: `/api/google/callback` or `/api/instagram/callback`. Register that exact URL in the provider console. Generate and keep stable separate Fernet keys for Google and Instagram token encryption. Register `/api/webhooks/whatsapp` with Meta if inbound WhatsApp events are needed.
 5. For hosted web search/chat, add `LLM_API_KEY` and `TAVILY_API_KEY`; provider accounts/scopes and approvals are still required. The Blueprint intentionally does not fabricate credentials or claim external integrations are connected.
 6. To use the currently running local n8n with the deployed app, set its `JARVIS_API_BASE_URL` to the deployed HTTPS service URL and its `JARVIS_API_TOKEN` to the same generated app token, then restart n8n. Keep the n8n editor private or protected by its own account login. The imported discovery workflow is manual; activate or run it only after reviewing its effects on active tasks.
 
-This Blueprint deploys JARVIS, not the n8n editor. A deploy cannot be started from this workspace until it is pushed to a Git provider and connected to an authorized Render account. Keep the API token private; the app requires it for API access after deployment.
+This Blueprint deploys JARVIS, not the n8n editor. The free tier can sleep while idle and does not preserve SQLite data across instance replacement, restarts, or redeployments. To retain production data, upgrade to a paid service with an appropriate persistent disk or migrate to managed persistent storage before relying on it. Keep the API token private; the app requires it for API access after deployment.
 
 ## Task workflow
 
