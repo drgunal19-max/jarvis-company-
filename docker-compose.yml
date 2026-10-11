@@ -1,0 +1,14 @@
+
+services:
+  jarvis:
+    build: .
+    ports:
+      - "8000:8000"
+    environment:
+      APP_ENV: development
+      DATABASE_URL: sqlite:///./data/jarvis.db
+      ENABLE_SCHEDULER: "false"
+    volumes:
+      - jarvis_data:/app/data
+volumes:
+  jarvis_data:
