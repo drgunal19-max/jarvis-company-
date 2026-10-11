@@ -1,0 +1,30 @@
+services:
+  - type: web
+    name: jarvis-company-ai
+    runtime: docker
+    plan: starter
+    region: oregon
+    healthCheckPath: /api/health
+    disk:
+      name: jarvis-data
+      mountPath: /app/data
+      sizeGB: 1
+    envVars:
+      - key: APP_ENV
+        value: production
+      - key: DATABASE_URL
+        value: sqlite:///./data/jarvis.db
+      - key: APP_API_TOKEN
+        generateValue: true
+      - key: ENABLE_SCHEDULER
+        value: "false"
+      - key: POLL_INTERVAL_MINUTES
+        value: "30"
+      - key: LLM_BASE_URL
+        value: https://api.openai.com/v1
+      - key: LLM_MODEL
+        value: gpt-4o-mini
+      - key: META_GRAPH_API_VERSION
+        value: v23.0
+      - key: INSTAGRAM_GRAPH_API_VERSION
+        value: v25.0

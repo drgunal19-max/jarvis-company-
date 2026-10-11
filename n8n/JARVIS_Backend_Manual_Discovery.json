@@ -1,0 +1,130 @@
+{
+  "name": "JARVIS - Manual Backend Discovery",
+  "id": "0a6caeee-5a47-4b47-8fe4-f1fb7cb7ac01",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "jarvis-manual-trigger",
+      "name": "Manual Trigger",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [240, 300]
+    },
+    {
+      "parameters": {
+        "url": "={{ ($env.JARVIS_API_BASE_URL || 'http://jarvis:8000').replace(/\\/$/, '') + '/api/tasks' }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "={{ 'Bearer ' + $env.JARVIS_API_TOKEN }}"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 20000,
+          "response": {
+            "response": {
+              "neverError": false
+            }
+          }
+        }
+      },
+      "id": "jarvis-fetch-tasks",
+      "name": "Fetch JARVIS Tasks",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [460, 300],
+      "onError": "stopWorkflow"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const tasks = items.flatMap(({json}) => Array.isArray(json) ? json : (Array.isArray(json.data) ? json.data : (Array.isArray(json.body) ? json.body : [json]))); return tasks.filter(task => task.status === 'active').map(task => ({json: {id: task.id, title: task.title}}));"
+      },
+      "id": "jarvis-filter-active",
+      "name": "Select Active Tasks",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [680, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ ($env.JARVIS_API_BASE_URL || 'http://jarvis:8000').replace(/\\/$/, '') + '/api/tasks/' + $json.id + '/run' }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "={{ 'Bearer ' + $env.JARVIS_API_TOKEN }}"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 45000,
+          "response": {
+            "response": {
+              "neverError": false
+            }
+          }
+        },
+        "sendBody": false
+      },
+      "id": "jarvis-run-task",
+      "name": "Run Discovery in JARVIS",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [920, 300],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 2000,
+      "onError": "continueErrorOutput"
+    }
+  ],
+  "connections": {
+    "Manual Trigger": {
+      "main": [
+        [
+          {
+            "node": "Fetch JARVIS Tasks",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch JARVIS Tasks": {
+      "main": [
+        [
+          {
+            "node": "Select Active Tasks",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Select Active Tasks": {
+      "main": [
+        [
+          {
+            "node": "Run Discovery in JARVIS",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "b7522c11-dcb0-4f62-a647-540a1c2b23e1",
+  "meta": {
+    "templateCredsSetupCompleted": false
+  },
+  "tags": []
+}

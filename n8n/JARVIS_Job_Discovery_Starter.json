@@ -1,0 +1,148 @@
+{
+  "name": "JARVIS - Job Discovery Starter",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "manual-trigger",
+      "name": "Manual Trigger",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        240,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "url": "https://www.arbeitnow.com/api/job-board-api",
+        "options": {
+          "timeout": 20000
+        }
+      },
+      "id": "fetch-jobs",
+      "name": "Fetch Public Job Feed",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        460,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "fieldToSplitOut": "data",
+        "options": {}
+      },
+      "id": "split-data",
+      "name": "Split Job Items",
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1,
+      "position": [
+        680,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": false,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "keyword-check",
+              "leftValue": "={{ (($json.title || '') + ' ' + ($json.description || '') + ' ' + ($json.location || '')).toLowerCase() }}",
+              "rightValue": "assistant|computer|it support|technical support|help desk",
+              "operator": {
+                "type": "string",
+                "operation": "regex"
+              }
+            }
+          ],
+          "combinator": "or"
+        },
+        "options": {}
+      },
+      "id": "filter-jobs",
+      "name": "Filter Relevant Roles",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        900,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "return items.map(item => ({json: {title: item.json.title || 'Untitled role', company: item.json.company_name || '', location: item.json.location || '', url: item.json.url || '', source: 'Arbeitnow', collectedAt: new Date().toISOString(), summary: String(item.json.description || '').replace(/<[^>]*>/g, ' ').replace(/\\s+/g, ' ').slice(0, 400)}}));"
+      },
+      "id": "format-results",
+      "name": "Normalize Results",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1120,
+        200
+      ]
+    }
+  ],
+  "connections": {
+    "Manual Trigger": {
+      "main": [
+        [
+          {
+            "node": "Fetch Public Job Feed",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch Public Job Feed": {
+      "main": [
+        [
+          {
+            "node": "Split Job Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split Job Items": {
+      "main": [
+        [
+          {
+            "node": "Filter Relevant Roles",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filter Relevant Roles": {
+      "main": [
+        [
+          {
+            "node": "Normalize Results",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "jarvis-starter-v1",
+  "meta": {
+    "templateCredsSetupCompleted": true
+  },
+  "tags": []
+}

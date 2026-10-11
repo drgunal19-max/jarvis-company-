@@ -1,0 +1,165 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#08111e">
+<title>J.A.R.V.I.S. Company AI</title>
+<link rel="stylesheet" href="/static/styles.css">
+<link rel="stylesheet" href="/static/features.css">
+</head>
+<body>
+<header>
+  <div class="brand"><div class="orb">J</div><div><h1>J.A.R.V.I.S.</h1><p>Company Intelligence &amp; Automation AI</p></div></div>
+  <div class="header-actions"><button id="emergencyButton" class="secondary" type="button">Emergency stop</button><span id="health" class="pill">Connecting…</span></div>
+</header>
+<main>
+  <section class="hero">
+    <div><p class="eyebrow">PERSONAL COMPANY OPERATIONS</p><h2>Your instructions.<br><em>Intelligent execution.</em></h2><p class="muted">Create monitored tasks, run permitted public-source checks, and review ranked findings. External actions are not automated.</p></div>
+    <div class="hero-stat"><span>System status</span><strong id="statusText">Checking</strong><small id="lastCheck">Last check: not yet run</small></div>
+  </section>
+
+  <div id="notice" class="notice" role="status" aria-live="polite"></div>
+
+  <section class="panel chat-panel">
+    <div class="section-head"><div><h3>JARVIS assistant</h3><p>Chat, search the web when enabled, and ask JARVIS to create a discovery task. It will not run a task without your instruction.</p></div></div>
+    <div id="chatMessages" class="chat-messages" aria-live="polite"><p class="muted">Loading conversation…</p></div>
+    <form id="chatForm" class="chat-form">
+      <label for="chatInput">Message JARVIS</label>
+      <textarea id="chatInput" required maxlength="4000" rows="3" placeholder="Ask a question or ask JARVIS to monitor a public-source discovery task"></textarea>
+      <div class="chat-controls">
+        <label class="checkbox"><input id="webSearch" type="checkbox"> Search the web (requires Tavily API key)</label>
+        <label class="checkbox"><input id="readAloud" type="checkbox"> Read replies aloud</label>
+        <button id="voiceButton" class="secondary" type="button" aria-label="Speak a message">Use voice</button>
+        <span id="voiceStatus" class="meta">Voice input depends on browser support and its speech service.</span>
+        <button id="chatSend" type="submit">Send</button>
+      </div>
+    </form>
+  </section>
+
+  <section class="panel">
+    <div class="section-head"><div><h3>Assistant command</h3><p>Describe a task in plain language. Uses the configured LLM if available; otherwise it uses deterministic local extraction.</p></div></div>
+    <form id="commandForm"><label>What should I monitor?<textarea id="command" required rows="2" placeholder="Find an administrative assistant in Bengaluru with Excel and scheduling skills"></textarea></label><button type="submit">Create from command</button><span id="commandMessage" class="muted"></span></form>
+  </section>
+
+  <section class="panel">
+    <div class="section-head"><div><h3>Create or configure a task</h3><p>Choose match terms and optional automatic polling interval (requires scheduler enabled).</p></div></div>
+    <form id="taskForm">
+      <div class="form-grid"><label>Task name<input id="title" required minlength="2" maxlength="160" placeholder="Find a computer-skilled assistant"></label><label>Location<input id="location" maxlength="160" placeholder="Bengaluru"></label></div>
+      <label>Instruction<textarea id="instruction" required minlength="3" maxlength="3000" rows="2" placeholder="Find relevant job listings and opportunities..."></textarea></label>
+      <label>Keywords, separated by commas<input id="keywords" value="assistant, computer, IT support, technical support, help desk"></label>
+      <label>Run every (minutes; 0 means manual only)<input id="interval" type="number" min="0" max="10080" value="0"></label>
+      <button type="submit">＋ Create task</button><span id="formMessage" class="muted"></span>
+    </form>
+  </section>
+
+  <section class="panel">
+    <div class="section-head"><div><h3>Morning briefing</h3><p>Generated from actual local findings and source/run history.</p></div><button class="secondary" id="refreshBriefing" type="button">Refresh briefing</button></div>
+    <div id="briefing" class="briefing"></div>
+  </section>
+
+  <section class="panel">
+    <div class="section-head"><div><h3>Tasks</h3><p>Run once, edit, pause, resume, or cancel tasks. Cancelled tasks are terminal.</p></div><button class="secondary" id="refreshTasks" type="button">Refresh</button></div>
+    <div id="tasks" class="task-list"><p class="muted">Loading tasks…</p></div>
+    <div class="data-controls"><button class="secondary" id="exportData" type="button">Export my data</button><p class="meta">Permanent task deletion removes its findings, runs, and configured feeds. Its audit record is retained.</p></div>
+  </section>
+
+  <section class="panel">
+    <div class="section-head"><div><h3>Findings inbox</h3><p>Review, mark relevance, and open the original source.</p></div><div class="head-controls"><select id="findingFilter" aria-label="Filter findings"><option value="">All findings</option><option value="new">Needs review</option><option value="relevant">Relevant</option><option value="irrelevant">Irrelevant</option><option value="contacted">Contacted</option><option value="completed">Completed</option><option value="duplicate">Duplicate</option></select><button class="secondary" id="refreshFindings" type="button">Refresh</button></div></div>
+    <div id="findings" class="finding-list"><p class="muted">No findings yet. Create a task and run discovery.</p></div>
+  </section>
+
+  <section class="panel">
+    <div class="section-head"><div><h3>Sources &amp; connections</h3><p>Only checked sources are reported as checked; unsupported integrations remain disconnected.</p></div><button class="secondary" id="refreshIntegrations" type="button">Refresh</button></div>
+    <div id="integrations" class="integration-list"></div>
+    <h4 class="subsection-title">Google Workspace (read-only)</h4>
+    <p id="googleConnection" class="meta">Checking Google OAuth configuration…</p>
+    <div class="google-connect-actions">
+      <button id="connectGoogle" type="button">Connect Google account</button>
+      <button id="disconnectGoogle" class="secondary" type="button" hidden>Disconnect Google account</button>
+    </div>
+    <div id="googleTools" hidden>
+      <form id="gmailSearchForm" class="google-search-form">
+        <label>Search Gmail<input id="gmailQuery" maxlength="200" placeholder="from:example@example.com is:unread"></label>
+        <button type="submit">Search Gmail</button>
+      </form>
+      <div id="gmailResults" class="memory-list"><p class="muted">Search only when you choose.</p></div>
+      <div class="google-heading"><h4 class="subsection-title">Upcoming Calendar events (next 30 days)</h4><button id="loadCalendar" class="secondary" type="button">Load events</button></div>
+      <div id="calendarResults" class="memory-list"><p class="muted">Load events only when you choose.</p></div>
+      <form id="driveSearchForm" class="google-search-form">
+        <label>Find Drive files by name<input id="driveQuery" maxlength="120" placeholder="Project brief"></label>
+        <button type="submit">Search Drive</button>
+      </form>
+      <div id="driveResults" class="memory-list"><p class="muted">Search only when you choose. Only file metadata is read.</p></div>
+    </div>
+    <h4 class="subsection-title">Instagram (read-only)</h4>
+    <p id="instagramConnection" class="meta">Checking Instagram Login configuration…</p>
+    <div class="google-connect-actions">
+      <button id="connectInstagram" type="button">Connect Instagram professional account</button>
+      <button id="disconnectInstagram" class="secondary" type="button" hidden>Disconnect Instagram</button>
+    </div>
+    <div id="instagramTools" hidden>
+      <button id="loadInstagram" class="secondary" type="button">Load profile and recent media</button>
+      <div id="instagramProfile" class="memory-list"><p class="muted">Load only when you choose.</p></div>
+      <div id="instagramMedia" class="memory-list"></div>
+    </div>
+    <h4 class="subsection-title">Add a public RSS / Atom feed</h4>
+    <p class="meta">Optional per-task source. HTTPS only, public IP addresses only, redirects blocked, and feed responses limited to 2 MB. Feed URLs can still reveal your server’s IP to their host.</p>
+    <form id="sourceForm" class="source-form">
+      <label>Task<select id="sourceTask" required></select></label>
+      <label>Feed name<input id="sourceName" required minlength="2" maxlength="60" placeholder="Company careers"></label>
+      <label>HTTPS feed URL<input id="sourceUrl" required type="url" maxlength="2000" placeholder="https://example.com/careers/rss"></label>
+      <button type="submit">Add feed</button>
+    </form>
+    <div id="taskSources" class="memory-list"></div>
+    <h4 class="subsection-title">WhatsApp Business</h4>
+    <p id="whatsappConnection" class="meta">Checking WhatsApp Cloud API configuration…</p>
+    <p class="meta">Webhook callback URL: <code id="whatsappWebhookUrl"></code>. A public HTTPS URL is required for Meta webhooks; local URLs work for sending only.</p>
+    <form id="whatsappForm" class="whatsapp-form">
+      <label>Recipient phone number<input id="whatsappRecipient" type="tel" required pattern="\+[1-9][0-9]{7,14}" maxlength="16" autocomplete="tel" placeholder="+14155552671"></label>
+      <label>Text message<textarea id="whatsappMessage" required maxlength="4096" rows="3" placeholder="Type a WhatsApp message"></textarea></label>
+      <label class="checkbox"><input id="whatsappConsent" type="checkbox" required> I confirm this recipient opted in to receive this message.</label>
+      <button id="whatsappSend" type="submit">Send WhatsApp message</button>
+      <span id="whatsappSendStatus" class="meta" aria-live="polite"></span>
+    </form>
+    <div class="section-head"><h4 class="subsection-title">WhatsApp message history</h4><button class="secondary" id="refreshWhatsApp" type="button">Refresh</button></div>
+    <div id="whatsappMessages" class="memory-list"><p class="muted">Loading WhatsApp messages…</p></div>
+    <div class="api-token"><label>App API bearer token (needed only when APP_API_TOKEN is configured)<input id="apiToken" type="password" autocomplete="off" placeholder="Token is held in this browser tab only"></label><button class="secondary" id="saveToken" type="button">Use token in this tab</button><button class="secondary" id="clearToken" type="button">Clear</button></div>
+  </section>
+
+  <section class="panel">
+    <div class="section-head"><div><h3>Preferences</h3><p>Saved locally and used for defaults. Quiet hours currently inform settings only.</p></div></div>
+    <form id="preferencesForm">
+      <div class="form-grid"><label>Default location<input id="prefLocation" maxlength="160"></label><label>Default keywords<input id="prefKeywords" placeholder="assistant, Excel"></label><label>Quiet hours start<input id="quietStart" type="time"></label><label>Quiet hours end<input id="quietEnd" type="time"></label></div>
+      <label class="checkbox"><input id="morningBriefing" type="checkbox"> Enable morning briefing section</label>
+      <button type="submit">Save preferences</button><span id="preferencesMessage" class="muted"></span>
+    </form>
+  </section>
+
+  <section class="panel">
+    <div class="section-head"><div><h3>Persistent memory</h3><p>Saved key/value notes. Review or delete memories at any time.</p></div></div>
+    <form id="memoryForm" class="memory-form"><label>Key<input id="memoryKey" required maxlength="100" placeholder="preferred_location"></label><label>Value<input id="memoryValue" required maxlength="2000" placeholder="Bengaluru"></label><button type="submit">Save memory</button></form>
+    <div id="memories" class="memory-list"></div>
+  </section>
+
+  <section class="panel">
+    <div class="section-head"><div><h3>Execution history</h3><p>Completed and failed discovery checks with checked/new counts.</p></div><button class="secondary" id="refreshRuns" type="button">Refresh</button></div>
+    <div id="runs" class="run-list"></div>
+  </section>
+  <footer>J.A.R.V.I.S. local app • Not production-authenticated unless an API token is configured. Zoho, mail, LinkedIn and outbound messaging are not connected.</footer>
+</main>
+
+<dialog id="editDialog">
+  <form id="editForm" method="dialog">
+    <h3>Edit task</h3>
+    <input id="editId" type="hidden">
+    <label>Task name<input id="editTitle" required minlength="2" maxlength="160"></label>
+    <label>Location<input id="editLocation" maxlength="160"></label>
+    <label>Instruction<textarea id="editInstruction" required minlength="3" maxlength="3000" rows="3"></textarea></label>
+    <label>Keywords, separated by commas<input id="editKeywords"></label>
+    <label>Run every (minutes; 0 means manual only)<input id="editInterval" type="number" min="0" max="10080"></label>
+    <div class="actions"><button id="saveEdit" type="button">Save task</button><button class="secondary" value="cancel">Close</button></div>
+  </form>
+</dialog>
+<script src="/static/app.js"></script>
+</body>
+</html>
